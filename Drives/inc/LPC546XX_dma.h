@@ -91,8 +91,8 @@ ALIGN(512) extern dma_descriptor_t s_dma_descriptor_table[DMA_CHMAX];//DMA通道描
 //使用__STATIC_INLINE为了将这段函数内嵌到使用该函数的地方，这样可以减少函数调用的时间
 __STATIC_INLINE void dma_reload(DMACH_enum dmach, void *SADDR, void *DADDR, uint16 count)//DMA参数重载  重新设置参数无需调用初始化
 {
-    DMA0->COMMON[0].ENABLECLR = 1<<dmach;
-    DMA0->COMMON[0].ABORT = 1<<dmach;
+    DMA0->COMMON[0].ENABLECLR = 1<<dmach;	//清除某个信道的DMA允许
+    DMA0->COMMON[0].ABORT = 1<<dmach;		//终止某个信道的DMA操作
     s_dma_descriptor_table[dmach].xfercfg = ( 0
                                             //| DMA_CHANNEL_XFERCFG_RELOAD_MASK        //参数自动重载
                                             | DMA_CHANNEL_XFERCFG_CFGVALID_MASK

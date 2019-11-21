@@ -52,8 +52,6 @@ void adc_mux(ADCCH_enum ch)
 void adc_init(ADCCH_enum ch)
 {
     uint16 temp_div;
-    
-    
     SYSCON->PDRUNCFGCLR[0] = ( 0
                              | SYSCON_PDRUNCFGCLR_PDEN_ADC0_MASK 
                              | SYSCON_PDRUNCFGCLR_PDEN_VD2_ANA_MASK 

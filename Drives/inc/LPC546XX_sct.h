@@ -89,10 +89,6 @@ typedef enum
 
 #define SCT0_PWM_PERIOD_CH  SCT_OUTPUT_CH0  //定义周期事件所占用的通道，周期通道不能用于输出PWM。 SCT_OUTPUT_CH1默认被摄像头PCLK占用
 
-
-
-
-
 //由于定时器使用的是16位的，因为当设置的最大占空比超过0XFFFF将没有实际意义，仅仅是徒增运算量而已
 //通常电机控制最大占空比设置为1000就足够了
 #define SCT0_OUTPUT_CH0_DUTY_MAX     10000                                   //SCT0 OUTPUT0 PWM最大占空比  最大占空比越大占空比的步进值越小
@@ -104,7 +100,7 @@ typedef enum
 #define SCT0_OUTPUT_CH6_DUTY_MAX     10000                                   //SCT0 OUTPUT6 PWM最大占空比  最大占空比越大占空比的步进值越小
 #define SCT0_OUTPUT_CH7_DUTY_MAX     10000                                   //SCT0 OUTPUT7 PWM最大占空比  最大占空比越大占空比的步进值越小
 #define SCT0_OUTPUT_CH8_DUTY_MAX     10000                                   //SCT0 OUTPUT8 PWM最大占空比  最大占空比越大占空比的步进值越小
-#define SCT0_OUTPUT_CH9_DUTY_MAX     10000                                   //SCT0 OUTPUT9 PWM最大占空比  最大占空比越大占空比的步进值越小
+#define SCT0_OUTPUT_CH9_DUTY_MAX     10                                   		//SCT0 OUTPUT9 PWM最大占空比  最大占空比越大占空比的步进值越小
 
 
 

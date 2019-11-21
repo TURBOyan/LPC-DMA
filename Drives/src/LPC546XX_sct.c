@@ -305,8 +305,7 @@ void sct_pwm_init(SCT_OUTPUT_PIN_enum pwm_pin, uint32 freq, uint32 duty)
     
     sct_out_ch = pwm_pin>>2;                //计算通道
     ASSERT(duty<=sct_duty_max[sct_out_ch]); //最大占空比断言
-    
-    
+
     prescale = temp_div - 1;                //计算分频系数
     period_temp = sct_clk/freq/temp_div;    //周期计数次数
     match_temp = duty*period_temp/sct_duty_max[sct_out_ch];//计算占空比匹配数
