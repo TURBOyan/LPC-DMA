@@ -148,8 +148,8 @@ void FLEXCOMM0_DriverIRQHandler(void)
 										
 					case 'p':	Elema_Unabsorb(Elema_Mid);Servo_Down;systick_delay_ms(2000);Servo_Up;break;//放棋子
 					case 'o': Elema_Absorb(Elema_Mid);Servo_Down;systick_delay_ms(2000);Servo_Up;	break;//吸棋子
-					case 'n': Elema_Unabsorb(Elema_Left);	break;//放左障碍
-					case 'm': Elema_Unabsorb(Elema_Right);	break;//放右障碍
+//					case 'n': Elema_Unabsorb(Elema_Left);	break;//放左障碍
+//					case 'm': Elema_Unabsorb(Elema_Right);	break;//放右障碍
 					
 					case 'K': mode=0;break;
 					default : break;
@@ -204,7 +204,8 @@ void DMA0_DriverIRQHandler(void)
     if(READ_DMA_FLAG(MT9V032_DMA_CH))
     {
         CLEAR_DMA_FLAG(MT9V032_DMA_CH);
-        mt9v032_dma();      //总钻风dma中断代码，当使用总钻风的时候执行该代码
+				OLED_P6x8Int(55, 0, 573275275, 5);
+        //mt9v032_dma();      //总钻风dma中断代码，当使用总钻风的时候执行该代码
     }
 }
 

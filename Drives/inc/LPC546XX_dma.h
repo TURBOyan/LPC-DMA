@@ -21,6 +21,8 @@
 #ifndef _LPC546XX_dma_h
 #define _LPC546XX_dma_h
 
+#include "LPC546XX_adc.h"
+
 //此枚举定义不允许用户修改
 typedef enum
 {
@@ -125,7 +127,7 @@ __STATIC_INLINE void dma_reload_linked(DMACH_enum dmach, void *DADDR, uint32 cou
 void dam_init(DMACH_enum dmach, void *SADDR, void *DADDR, uint16 count);
 void dam_init_linked(DMACH_enum dmach, void *SADDR, void *DADDR, uint32 count);
 
-
+void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void *DADDR, uint16 count);
 
 #endif
 

@@ -194,10 +194,10 @@ void dam_init_linked(DMACH_enum dmach, void *SADDR, void *DADDR, uint32 count)
 
 
 
-void adc_mux(ADCCH_enum ch)
-{
+//void adc_mux(ADCCH_enum ch)
+//{
 
-}
+//}
 
 
 void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void *DADDR, uint16 count)
@@ -222,13 +222,6 @@ void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void
     
     SYSCON->AHBCLKCTRLSET[0] = SYSCON_AHBCLKCTRL_ADC0_MASK;     //打开ADC时钟
     SYSCON->PRESETCTRLCLR[0] = SYSCON_PRESETCTRL_ADC0_RST_MASK; //清除复位ADC时钟
-/*! @name 以下为DMA时钟配置部分 ******************************************************************/
-	  SYSCON->AHBCLKCTRLSET[0] = SYSCON_AHBCLKCTRL_DMA_MASK;              //打开DMA时钟 enable the clock to the DMA
-    SYSCON->PRESETCTRLCLR[0] = SYSCON_PRESETCTRL_DMA0_RST_MASK;         //清除DMA复位时钟Clear the DMA peripheral reset 
-    
-    SYSCON->AHBCLKCTRLSET[0] = SYSCON_AHBCLKCTRL_INPUTMUX_MASK;         //打开多路复用时钟
-    INPUTMUX->DMA_ITRIG_INMUX[dmach] = INPUTMUX_DMA_ITRIG_INMUX_INP(0); //设置DMA触发复用通道 0为ADC0 Sequence A interrupt 1为ADC0 Sequence B interrupt
-    SYSCON->AHBCLKCTRLCLR[0] = SYSCON_AHBCLKCTRL_INPUTMUX_MASK;         //关闭多路复用时钟
 
 /*! @name 以下为ADC配置部分 *********************************************************************/
 
@@ -245,21 +238,16 @@ void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void
 
         default:        ASSERT(0);//通道错误 进入断言失败
     }
+		iocon_init(B0 ,ALT0 | NOPULL | ANALOG | FILTEROFF);
+		iocon_init(A23,ALT0 | NOPULL | ANALOG | FILTEROFF);
+		
     temp_div = (main_clk_mhz*100/80 + 99)/100;
     ADC0->CTRL = ( 0
                  | ADC_CTRL_CLKDIV(temp_div-1)      //分频最大不超过80M
-                 | ADC_CTRL_RESOL(0x3)              //默认12位分辨率
+                 | ADC_CTRL_RESOL(0x0)              //默认12位分辨率
                  //| ADC_CTRL_BYPASSCAL_MASK        //采样校准  0:启用校准功能    1：关闭校准   屏蔽为0
                  | ADC_CTRL_TSAMP(0)                //采样周期，设置约为2.5个ADC时钟
                  );
-
-//		ADC0->SEQ_CTRL[0]= 0;		//首先清零SEQB_ENA寄存器，防止生成虚假触发
-//		ADC0->SEQ_CTRL[0]= (0
-//											|ADC_SEQ_CTRL_TRIGGER(0x03) //0x03-以SCT0的Output4作为触发信号输入
-//											|ADC_SEQ_CTRL_TRIGPOL_MASK	//选择位上升沿触发
-//											|
-//										 );
-		
     ADC0->STARTUP = ADC_STARTUP_ADC_ENA_MASK;           //开启ADC
     systick_delay_us(10);                               //必要延时
     if (!(ADC0->STARTUP & ADC_STARTUP_ADC_ENA_MASK))
@@ -272,20 +260,42 @@ void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void
     while(ADC_CALIB_CALIB_MASK == (ADC0->CALIB & ADC_CALIB_CALIB_MASK));
     
     ADC0->STARTUP |= ADC_STARTUP_ADC_INIT_MASK;         //ADC初始化
-    while(ADC_STARTUP_ADC_INIT_MASK == (ADC0->STARTUP & ADC_STARTUP_ADC_INIT_MASK));
+    while(ADC_STARTUP_ADC_INIT_MASK == (ADC0->STARTUP & ADC_STARTUP_ADC_INIT_MASK)){};
+			
+/**/sct_pwm_init(SCT0_OUT9_A30, freq, SCT0_OUTPUT_CH9_DUTY_MAX*0.5);	//设置SCT0的OUT9输出200kHz的方波，用于触发ADC
 		
+		ADC0->SEQ_CTRL[0]= 0;		//首先清零SEQB_ENA寄存器，防止生成虚假触发
+		ADC0->SEQ_CTRL[0]= (0
+											|ADC_SEQ_CTRL_CHANNELS(1<<ch)  //设置通道
+											|ADC_SEQ_CTRL_TRIGGER(0x03) //0x03-以SCT0的Output4作为触发信号输入
+											|ADC_SEQ_CTRL_TRIGPOL_MASK	//选择位上升沿触发
+											|ADC_SEQ_CTRL_BURST_MASK
+											|ADC_SEQ_CTRL_SEQ_ENA_MASK				//使能ADC转换
+										 );
+		ADC0->INTEN= (0
+								 |ADC_INTEN_SEQA_INTEN_MASK
+									);
+			
 /*******************************************************************************************************/
-
+/*! @name 以下为DMA配置部分 ******************************************************************/
+			
+	  SYSCON->AHBCLKCTRLSET[0] = SYSCON_AHBCLKCTRL_DMA_MASK;              //打开DMA时钟 enable the clock to the DMA
+    SYSCON->PRESETCTRLCLR[0] = SYSCON_PRESETCTRL_DMA0_RST_MASK;         //清除DMA复位时钟Clear the DMA peripheral reset 
+    
+    SYSCON->AHBCLKCTRLSET[0] = SYSCON_AHBCLKCTRL_INPUTMUX_MASK;         //打开多路复用时钟
+    INPUTMUX->DMA_ITRIG_INMUX[dmach] = INPUTMUX_DMA_ITRIG_INMUX_INP(0); //设置DMA触发复用通道 0为ADC0 Sequence A interrupt 1为ADC0 Sequence B interrupt
+    SYSCON->AHBCLKCTRLCLR[0] = SYSCON_AHBCLKCTRL_INPUTMUX_MASK;         //关闭多路复用时钟
+		
     DMA0->SRAMBASE = (uint32_t)s_dma_descriptor_table;		//将结构体s_dma_descriptor_table映射至SRAMBASE
     DMA0->CTRL = DMA_CTRL_ENABLE_MASK;		//使能DMA
     DMA0->COMMON[0].ENABLESET = 1<<dmach;	//使能DMA通道
     
     DMA0->CHANNEL[dmach].CFG = ( 0
-                              // | DMA_CHANNEL_CFG_HWTRIGEN_MASK
-                               //| DMA_CHANNEL_CFG_TRIGPOL_MASK       //1 上升沿
-                                //| DMA_CHANNEL_CFG_TRIGTYPE_MASK   //0 :边沿触发
+                               | DMA_CHANNEL_CFG_HWTRIGEN_MASK
+                               | DMA_CHANNEL_CFG_TRIGPOL_MASK       //1 上升沿
+                               | DMA_CHANNEL_CFG_TRIGTYPE_MASK   		//0 :边沿触发
                                | DMA_CHANNEL_CFG_TRIGBURST_MASK     //启用burst传输
-                               | DMA_CHANNEL_CFG_BURSTPOWER(0)      //burst传输为一个字节
+                               | DMA_CHANNEL_CFG_BURSTPOWER(0x02)      //burst传输为4个字节
                                | DMA_CHANNEL_CFG_CHPRIORITY(0)      //优先级设置   0为最高
                                );
     
@@ -293,12 +303,12 @@ void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void
     DMA0->COMMON[0].INTENSET = 1<<dmach;
     
     s_dma_descriptor_table[dmach].xfercfg = ( 0
-                                   //| DMA_CHANNEL_XFERCFG_RELOAD_MASK        //参数自动重载
+                                   | DMA_CHANNEL_XFERCFG_RELOAD_MASK        //参数自动重载
                                    | DMA_CHANNEL_XFERCFG_CFGVALID_MASK
                                    | DMA_CHANNEL_XFERCFG_SETINTA_MASK       //
-                                   | DMA_CHANNEL_XFERCFG_WIDTH(0)           //宽度8位
+                                   | DMA_CHANNEL_XFERCFG_WIDTH(2)           //宽度32位
                                    | DMA_CHANNEL_XFERCFG_SRCINC(0)          //源地址不自增
-                                   | DMA_CHANNEL_XFERCFG_DSTINC(1)          //目的地址自增一个数据宽度
+																	 | DMA_CHANNEL_XFERCFG_DSTINC(1)          //目的地址自增一个数据宽度
                                    | DMA_CHANNEL_XFERCFG_XFERCOUNT(count-1) //DMA次数
                                    );
     
@@ -314,16 +324,21 @@ void DMA_Init_ADC_once(ADCCH_enum ch ,DMACH_enum dmach, ADCRES_enum resolution,u
 	
 	  ADC0->CTRL &= ~ADC_CTRL_RESOL_MASK;
     ADC0->CTRL |= ADC_CTRL_RESOL(resolution);   //分辨率
-    
-    ADC0->SEQ_CTRL[1] = 0;
-    ADC0->SEQ_CTRL[1] =( 0
-                        | ADC_SEQ_CTRL_CHANNELS(1<<ch)  //设置通道
-                        | ADC_SEQ_CTRL_SEQ_ENA_MASK
-                        | ADC_SEQ_CTRL_TRIGPOL_MASK
-                        | ADC_SEQ_CTRL_SINGLESTEP_MASK
-                       );
-
-    ADC0->SEQ_CTRL[1] |= ADC_SEQ_CTRL_START_MASK;               //启动ADC转换
-	/****/sct_pwm_init(SCT0_OUT9_A30, freq, SCT0_OUTPUT_CH9_DUTY_MAX*0.5);	//设置SCT0的OUT9输出200kHz的方波，用于触发ADC
 	
+/****/sct_pwm_init(SCT0_OUT9_A30, freq, SCT0_OUTPUT_CH9_DUTY_MAX*0.5);	//设置SCT0的OUT9输出200kHz的方波，用于触发ADC
+		
+		ADC0->INTEN = (0
+//									|ADC_INTEN_SEQA_INTEN_MASK
+									);		//禁用ADC系列A中断
+	
+	
+		ADC0->SEQ_CTRL[0]= 0;		//首先清零SEQA_ENA寄存器，防止生成虚假触发
+		ADC0->SEQ_CTRL[0]= (0
+											|ADC_SEQ_CTRL_CHANNELS(1<<ch)  //设置通道
+											|ADC_SEQ_CTRL_TRIGGER(0x03) //0x03-以SCT0的Output4作为触发信号输入
+											|ADC_SEQ_CTRL_TRIGPOL_MASK	//选择位上升沿触发
+											|ADC_SEQ_CTRL_BURST_MASK
+											|ADC_SEQ_CTRL_SEQ_ENA_MASK				//使能ADC转换
+										 );				
+		
 }
