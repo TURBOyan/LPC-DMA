@@ -68,19 +68,7 @@ typedef struct _dma_descriptor
     void *linkToNextDesc; //DMA下一个描述符地址
 } dma_descriptor_t;
 
-
-typedef struct dma_pingpong_descriptor
-{
-    uint32_t xfercfg;     //发送配置
-    uint32_t source;     //源地址终点
-    uint32_t dest;     //目的地址终点
-    uint32_t next; //DMA下一个描述符地址
-}dma_pingpong_descriptor_t;
-
 ALIGN(512) extern dma_descriptor_t s_dma_descriptor_table[DMA_CHMAX];//DMA通道描述符
-
-
-
 
 #define CLEAR_DMA_FLAG(n)   (DMA0->COMMON[0].INTA = 1<<n)       //DMA中断标志位清零 n为DMA通道编号
 #define READ_DMA_FLAG(n)    ((DMA0->COMMON[0].INTA & 1<<n)>>n)  //读取DMA中断标志位 n为DMA通道编号

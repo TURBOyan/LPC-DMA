@@ -199,7 +199,6 @@ void PIN_INT7_DriverIRQHandler(void)
     mt9v032_vsync();        //总钻风场中断代码，当使用总钻风的时候执行该代码
 }
 
-extern uint16 data[30];
 void DMA0_DriverIRQHandler(void)
 {
 //    if(READ_DMA_FLAG(Fourier_DMACH))

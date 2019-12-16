@@ -1,9 +1,13 @@
 #include "Fourier_DMA.h"
 #include "string.h"
 
-struct Fourier_Data_t Fourier_Data;		//定义保存傅里叶变换数据的结构体
+extern double my_cos(const double t);
+extern double my_sin(const double t);
+extern double my_sqrt(double y,double x);
 
-//ALIGN(512)作用是设置字节对齐
+struct Fourier_Data_t Fourier_Data;		//定义保存本底层所有用户数据的结构体
+
+//ALIGN(512)设置字节对齐
 //定义傅里叶DMA的传输描述符
 ALIGN(512) dma_descriptor_t FourierDMA_ChannelDescriptors[DMA_CHMAX]={0};
 
@@ -174,6 +178,31 @@ void Fourier_Once(ADCCH_enum ch,ADCRES_enum resolution)
 		Fourier_Data.Busy_Flag = 0;	//清全局忙标志
 }
 
+static double FFT(uint16 *adc_data)
+{
+	double An,Bn;
+	uint16 Begin_Point=ADC_Samp_SIZE-ADC_Samp_num;
+	double PI_2_f_Ts=3.1415926*2*Wave_Freq*(1/ADC_SampFreq);
+	for(uint8 k=1;k<=10;k++)
+	{
+	  An+=(2/ADC_Samp_num)*adc_data[k+Begin_Point-1] * my_cos(k*PI_2_f_Ts);
+	  Bn+=(2/ADC_Samp_num)*adc_data[k+Begin_Point-1] * my_sin(k*PI_2_f_Ts);
+	}
+	return my_sqrt(An,Bn);	//返回基波幅值
+}
+
+static void Data_Filter_ForADC(struct Fourier_Data_t *ADC_Process,ADCCH_enum ch)	// 数据滑动滤波
+{	
+  ADC_Process->ADCCH_Data[ch].Filt_BUF_SUM -= ADC_Process->ADCCH_Data[ch].Filt_BUF[ADC_Process->ADCCH_Data[ch].Filt_point];		//清除位历史缓存数据
+	
+	ADC_Process->ADCCH_Data[ch].Filt_BUF[ADC_Process->ADCCH_Data[ch].Filt_point] = ADC_Process->ADCCH_Data[ch].Result_WithoutFilt;	//位缓存数据重新赋值
+		
+  ADC_Process->ADCCH_Data[ch].Filt_BUF_SUM += ADC_Process->ADCCH_Data[ch].Filt_BUF[ADC_Process->ADCCH_Data[ch].Filt_point];		//将新值重新计入总量
+	
+	ADC_Process->ADCCH_Data[ch].Filt_point= (ADC_Process->ADCCH_Data[ch].Filt_point == (FILTER_NUM-1))?0:ADC_Process->ADCCH_Data[ch].Filt_point+1;	//指针刷新
+	
+	ADC_Process->ADCCH_Data[ch].Result = (uint16)(ADC_Process->ADCCH_Data[ch].Filt_BUF_SUM / FILTER_NUM / Ratio);	//对缓存区内数据作平均和滤波
+}
 
 		
 void Fourier_interrupt_Func(void)
@@ -187,6 +216,8 @@ void Fourier_interrupt_Func(void)
 				{
 					Data_Buff[num] = (Fourier_Data.Buff[num]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-Fourier_Data.ADCCH_Data[Fourier_Data.ADCCH_Save].resolution)*2);
 				}
+				Fourier_Data.ADCCH_Data[Fourier_Data.ADCCH_Save].Result_WithoutFilt=FFT(Data_Buff);	//基波幅值计算
+				Data_Filter_ForADC(&Fourier_Data,Fourier_Data.ADCCH_Save);						//数据滑动滤波
 				
 				Fourier_Data.ADCCH_Data[Fourier_Data.ADCCH_Save].START_Flag = 0;		//清除起始标志位，以便下次转换
     }
