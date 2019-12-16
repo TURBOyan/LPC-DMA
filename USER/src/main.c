@@ -8,11 +8,11 @@ uint32 data1[10]={num,num,num,num,num,num,num,num,num,num};
 
 int main(void)
 {
-	uint8 i,j;
+	uint32 i,j;
 	get_clk();
  	Init_ALL();
 	
-	DMA_Init_ADC(ADC_CH6_B0 ,DMA_CH0,200000, (void*)&data1[0],(void*)&data[0], 1);
+	DMA_Init_ADC(ADC_CH6_B0 ,DMA_CH0,20, (void*)ADC0->SEQ_GDAT[0],(void*)&data[0], 5);
 	while(1)
 	{
 //		Beep_On;
@@ -31,7 +31,11 @@ int main(void)
 //		OLED_P6x8Int(0, 5, ((data[5]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2)), 5);
 //		OLED_P6x8Int(0, 6, ((data[6]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2)), 5);
 
-		//OLED_P6x8Int(0, 1, ADC0->SEQ_GDAT[0], -5);
+		OLED_P6x8Int(50, 0, ADC0->SEQ_GDAT[0]>>31, -5);
+		j=(ADC0->SEQ_GDAT[0]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2);
+		OLED_P6x8Int(50, 1, ADC0->SEQ_GDAT[0]>>31, -5);
+		OLED_P6x8Int(50, 2, j, -5);
+
 	//	adc_convert(ADC_CH6_B0, ADC_12BIT);
 //		Beep_Off;
 //		adc_convert(ADC_CH6_B0, ADC_12BIT);

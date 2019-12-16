@@ -31,7 +31,6 @@
 
 ALIGN(512) dma_descriptor_t s_dma_descriptor_table[DMA_CHMAX] = {0};//DMA通道描述符
 
-
 //-------------------------------------------------------------------------------------------------------------------
 //  @brief      DMA初始化
 //  @param      dmach       DMA通道
@@ -194,12 +193,7 @@ void dam_init_linked(DMACH_enum dmach, void *SADDR, void *DADDR, uint32 count)
 
 
 
-//void adc_mux(ADCCH_enum ch)
-//{
-
-//}
-
-
+ALIGN(512) dma_descriptor_t ADC_TransferDescriptors[4]={0};//ADC-DMA的Ping-Pong传输描述符
 void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void *DADDR, uint16 count)
 {
     uint8  n;
@@ -270,6 +264,8 @@ void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void
 											|ADC_SEQ_CTRL_TRIGGER(0x03) //0x03-以SCT0的Output4作为触发信号输入
 											|ADC_SEQ_CTRL_TRIGPOL_MASK	//选择位上升沿触发
 											|ADC_SEQ_CTRL_BURST_MASK
+											|ADC_SEQ_CTRL_SYNCBYPASS_MASK
+											|ADC_SEQ_CTRL_MODE_MASK
 											|ADC_SEQ_CTRL_SEQ_ENA_MASK				//使能ADC转换
 										 );
 		ADC0->INTEN= (0
@@ -295,7 +291,7 @@ void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void
                                | DMA_CHANNEL_CFG_TRIGPOL_MASK       //1 上升沿
                                | DMA_CHANNEL_CFG_TRIGTYPE_MASK   		//0 :边沿触发
                                | DMA_CHANNEL_CFG_TRIGBURST_MASK     //启用burst传输
-                               | DMA_CHANNEL_CFG_BURSTPOWER(0x02)      //burst传输为4个字节
+                               | DMA_CHANNEL_CFG_BURSTPOWER(0)      //burst传输为4个字节
                                | DMA_CHANNEL_CFG_CHPRIORITY(0)      //优先级设置   0为最高
                                );
     
@@ -306,7 +302,7 @@ void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void
                                    | DMA_CHANNEL_XFERCFG_RELOAD_MASK        //参数自动重载
                                    | DMA_CHANNEL_XFERCFG_CFGVALID_MASK
                                    | DMA_CHANNEL_XFERCFG_SETINTA_MASK       //
-                                   | DMA_CHANNEL_XFERCFG_WIDTH(2)           //宽度32位
+                                   | DMA_CHANNEL_XFERCFG_WIDTH(1)           //宽度32位
                                    | DMA_CHANNEL_XFERCFG_SRCINC(0)          //源地址不自增
 																	 | DMA_CHANNEL_XFERCFG_DSTINC(1)          //目的地址自增一个数据宽度
                                    | DMA_CHANNEL_XFERCFG_XFERCOUNT(count-1) //DMA次数
@@ -315,7 +311,6 @@ void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void
     s_dma_descriptor_table[dmach].srcEndAddr = SADDR;
     s_dma_descriptor_table[dmach].dstEndAddr = (void *)((uint32)DADDR + count - 1);
     s_dma_descriptor_table[dmach].linkToNextDesc = 0;
-    
     DMA0->CHANNEL[dmach].XFERCFG = s_dma_descriptor_table[dmach].xfercfg;
 }
 
