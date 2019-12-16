@@ -192,8 +192,9 @@ void dam_init_linked(DMACH_enum dmach, void *SADDR, void *DADDR, uint32 count)
 
 
 
-
-ALIGN(512) dma_descriptor_t ADC_TransferDescriptors[4]={0};//ADC-DMA的Ping-Pong传输描述符
+ALIGN(512) dma_pingpong_descriptor_t ADC_TransferDescriptors[4]={0};//ADC-DMA的Ping-Pong传输描述符
+ALIGN(512) dma_pingpong_descriptor_t DMA_ChannelDescriptors[DMA_CHMAX]={0};//ADC-DMA的Ping-Pong传输描述符
+extern uint16 data[32];
 void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void *DADDR, uint16 count)
 {
     uint8  n;
@@ -281,8 +282,42 @@ void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void
     SYSCON->AHBCLKCTRLSET[0] = SYSCON_AHBCLKCTRL_INPUTMUX_MASK;         //打开多路复用时钟
     INPUTMUX->DMA_ITRIG_INMUX[dmach] = INPUTMUX_DMA_ITRIG_INMUX_INP(0); //设置DMA触发复用通道 0为ADC0 Sequence A interrupt 1为ADC0 Sequence B interrupt
     SYSCON->AHBCLKCTRLCLR[0] = SYSCON_AHBCLKCTRL_INPUTMUX_MASK;         //关闭多路复用时钟
+
+		ADC_TransferDescriptors[0].source = (uint32_t)&ADC0->SEQ_GDAT[0];
+		ADC_TransferDescriptors[1].source = (uint32_t)&ADC0->SEQ_GDAT[0];
+		ADC_TransferDescriptors[2].source = (uint32_t)&ADC0->SEQ_GDAT[0];
+		ADC_TransferDescriptors[3].source = (uint32_t)&ADC0->SEQ_GDAT[0];
+
+		ADC_TransferDescriptors[0].dest = (uint32_t)&data[4];
+		ADC_TransferDescriptors[1].dest = (uint32_t)&data[9];
+		ADC_TransferDescriptors[2].dest = (uint32_t)&data[14];
+		ADC_TransferDescriptors[3].dest = (uint32_t)&data[19];
+
+		ADC_TransferDescriptors[0].next = (uint32_t)&ADC_TransferDescriptors[1];
+		ADC_TransferDescriptors[1].next = (uint32_t)&ADC_TransferDescriptors[2];
+		ADC_TransferDescriptors[2].next = (uint32_t)&ADC_TransferDescriptors[3];
+		ADC_TransferDescriptors[3].next = (uint32_t)&ADC_TransferDescriptors[0];
+
+
+		ADC_TransferDescriptors[0].xfercfg = ( 0
+																			 | DMA_CHANNEL_XFERCFG_RELOAD_MASK        //参数自动重载
+																			 | DMA_CHANNEL_XFERCFG_CFGVALID_MASK
+																			 | DMA_CHANNEL_XFERCFG_SETINTA_MASK       //
+																			 | DMA_CHANNEL_XFERCFG_WIDTH(1)           //宽度16位
+																			 | DMA_CHANNEL_XFERCFG_SRCINC(0)          //源地址不自增
+																			 | DMA_CHANNEL_XFERCFG_DSTINC(1)          //目的地址自增一个数据宽度
+																			 | DMA_CHANNEL_XFERCFG_XFERCOUNT(5) //DMA次数
+																			 );
+		ADC_TransferDescriptors[1].xfercfg = ADC_TransferDescriptors[0].xfercfg;
+		ADC_TransferDescriptors[2].xfercfg = ADC_TransferDescriptors[0].xfercfg;
+		ADC_TransferDescriptors[3].xfercfg = ADC_TransferDescriptors[0].xfercfg;
+			
+    DMA_ChannelDescriptors[dmach].source = (uint32_t)ADC_TransferDescriptors[0].source;
+    DMA_ChannelDescriptors[dmach].dest   = (uint32_t)ADC_TransferDescriptors[0].dest;
+    DMA_ChannelDescriptors[dmach].next   = (uint32_t)&ADC_TransferDescriptors[1];
+		DMA_ChannelDescriptors[dmach].xfercfg= (uint32_t)ADC_TransferDescriptors[0].xfercfg;
 		
-    DMA0->SRAMBASE = (uint32_t)s_dma_descriptor_table;		//将结构体s_dma_descriptor_table映射至SRAMBASE
+    DMA0->SRAMBASE = (uint32_t)DMA_ChannelDescriptors;		//将结构DMA_ChannelDescriptors至RAMBASE
     DMA0->CTRL = DMA_CTRL_ENABLE_MASK;		//使能DMA
     DMA0->COMMON[0].ENABLESET = 1<<dmach;	//使能DMA通道
     
@@ -297,21 +332,8 @@ void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void
     
     DMA0->COMMON[0].SETVALID = 1<<dmach;
     DMA0->COMMON[0].INTENSET = 1<<dmach;
-    
-    s_dma_descriptor_table[dmach].xfercfg = ( 0
-                                   | DMA_CHANNEL_XFERCFG_RELOAD_MASK        //参数自动重载
-                                   | DMA_CHANNEL_XFERCFG_CFGVALID_MASK
-                                   | DMA_CHANNEL_XFERCFG_SETINTA_MASK       //
-                                   | DMA_CHANNEL_XFERCFG_WIDTH(1)           //宽度32位
-                                   | DMA_CHANNEL_XFERCFG_SRCINC(0)          //源地址不自增
-																	 | DMA_CHANNEL_XFERCFG_DSTINC(1)          //目的地址自增一个数据宽度
-                                   | DMA_CHANNEL_XFERCFG_XFERCOUNT(count-1) //DMA次数
-                                   );
-    
-    s_dma_descriptor_table[dmach].srcEndAddr = SADDR;
-    s_dma_descriptor_table[dmach].dstEndAddr = (void *)((uint32)DADDR + count - 1);
-    s_dma_descriptor_table[dmach].linkToNextDesc = 0;
-    DMA0->CHANNEL[dmach].XFERCFG = s_dma_descriptor_table[dmach].xfercfg;
+
+    DMA0->CHANNEL[dmach].XFERCFG = DMA_ChannelDescriptors[dmach].xfercfg;
 }
 
 void DMA_Init_ADC_once(ADCCH_enum ch ,DMACH_enum dmach, ADCRES_enum resolution,uint32 freq, void *SADDR, void *DADDR, uint16 count)

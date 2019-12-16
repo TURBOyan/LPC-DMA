@@ -69,6 +69,13 @@ typedef struct _dma_descriptor
 } dma_descriptor_t;
 
 
+typedef struct dma_pingpong_descriptor
+{
+    uint32_t xfercfg;     //发送配置
+    uint32_t source;     //源地址终点
+    uint32_t dest;     //目的地址终点
+    uint32_t next; //DMA下一个描述符地址
+}dma_pingpong_descriptor_t;
 
 ALIGN(512) extern dma_descriptor_t s_dma_descriptor_table[DMA_CHMAX];//DMA通道描述符
 
