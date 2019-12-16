@@ -48,6 +48,12 @@ typedef enum    // Ã¶¾ÙADCÍ¨µÀ
 }ADCRES_enum;
 
 
+#define  READ_ADCA_FLAG ADC0->SEQ_GDAT[0]>>31
+#define  READ_ADCB_FLAG ADC0->SEQ_GDAT[1]>>31
+
+#define CLEAR_ADCA_FLAG ADC0->FLAGS|= ADC_FLAGS_SEQA_INT_MASK
+#define CLEAR_ADCB_FLAG ADC0->FLAGS|= ADC_FLAGS_SEQB_INT_MASK
+
 void    adc_init(ADCCH_enum ch);
 uint16  adc_convert(ADCCH_enum ch, ADCRES_enum resolution);
 

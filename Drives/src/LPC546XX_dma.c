@@ -191,10 +191,10 @@ void dam_init_linked(DMACH_enum dmach, void *SADDR, void *DADDR, uint32 count)
 
 
 
-
+#define DMA_TRANSFER_SIZE 5
 ALIGN(512) dma_pingpong_descriptor_t ADC_TransferDescriptors[4]={0};//ADC-DMA的Ping-Pong传输描述符
 ALIGN(512) dma_pingpong_descriptor_t DMA_ChannelDescriptors[DMA_CHMAX]={0};//ADC-DMA的Ping-Pong传输描述符
-extern uint16 data[32];
+extern uint16 data[30];
 void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void *DADDR, uint16 count)
 {
     uint8  n;
@@ -262,9 +262,8 @@ void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void
 		ADC0->SEQ_CTRL[0]= 0;		//首先清零SEQB_ENA寄存器，防止生成虚假触发
 		ADC0->SEQ_CTRL[0]= (0
 											|ADC_SEQ_CTRL_CHANNELS(1<<ch)  //设置通道
-											|ADC_SEQ_CTRL_TRIGGER(0x03) //0x03-以SCT0的Output4作为触发信号输入
+											|ADC_SEQ_CTRL_TRIGGER(0x05) //0x05-以SCT0的Output9作为触发信号输入
 											|ADC_SEQ_CTRL_TRIGPOL_MASK	//选择位上升沿触发
-											|ADC_SEQ_CTRL_BURST_MASK
 											|ADC_SEQ_CTRL_SYNCBYPASS_MASK
 											|ADC_SEQ_CTRL_MODE_MASK
 											|ADC_SEQ_CTRL_SEQ_ENA_MASK				//使能ADC转换
@@ -288,10 +287,10 @@ void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void
 		ADC_TransferDescriptors[2].source = (uint32_t)&ADC0->SEQ_GDAT[0];
 		ADC_TransferDescriptors[3].source = (uint32_t)&ADC0->SEQ_GDAT[0];
 
-		ADC_TransferDescriptors[0].dest = (uint32_t)&data[4];
-		ADC_TransferDescriptors[1].dest = (uint32_t)&data[9];
-		ADC_TransferDescriptors[2].dest = (uint32_t)&data[14];
-		ADC_TransferDescriptors[3].dest = (uint32_t)&data[19];
+		ADC_TransferDescriptors[0].dest = (uint32_t)&data[(0+1)*DMA_TRANSFER_SIZE-1];
+		ADC_TransferDescriptors[1].dest = (uint32_t)&data[(1+1)*DMA_TRANSFER_SIZE-1];
+		ADC_TransferDescriptors[2].dest = (uint32_t)&data[(2+1)*DMA_TRANSFER_SIZE-1];
+		ADC_TransferDescriptors[3].dest = (uint32_t)&data[(3+1)*DMA_TRANSFER_SIZE-1];
 
 		ADC_TransferDescriptors[0].next = (uint32_t)&ADC_TransferDescriptors[1];
 		ADC_TransferDescriptors[1].next = (uint32_t)&ADC_TransferDescriptors[2];
@@ -306,15 +305,17 @@ void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void
 																			 | DMA_CHANNEL_XFERCFG_WIDTH(1)           //宽度16位
 																			 | DMA_CHANNEL_XFERCFG_SRCINC(0)          //源地址不自增
 																			 | DMA_CHANNEL_XFERCFG_DSTINC(1)          //目的地址自增一个数据宽度
-																			 | DMA_CHANNEL_XFERCFG_XFERCOUNT(5) //DMA次数
+																			 | DMA_CHANNEL_XFERCFG_XFERCOUNT(DMA_TRANSFER_SIZE-1) //DMA次数
 																			 );
+																			 
 		ADC_TransferDescriptors[1].xfercfg = ADC_TransferDescriptors[0].xfercfg;
 		ADC_TransferDescriptors[2].xfercfg = ADC_TransferDescriptors[0].xfercfg;
 		ADC_TransferDescriptors[3].xfercfg = ADC_TransferDescriptors[0].xfercfg;
 			
     DMA_ChannelDescriptors[dmach].source = (uint32_t)ADC_TransferDescriptors[0].source;
     DMA_ChannelDescriptors[dmach].dest   = (uint32_t)ADC_TransferDescriptors[0].dest;
-    DMA_ChannelDescriptors[dmach].next   = (uint32_t)&ADC_TransferDescriptors[1];
+//    DMA_ChannelDescriptors[dmach].next   = (uint32_t)&ADC_TransferDescriptors[1];
+    DMA_ChannelDescriptors[dmach].next   = 0;
 		DMA_ChannelDescriptors[dmach].xfercfg= (uint32_t)ADC_TransferDescriptors[0].xfercfg;
 		
     DMA0->SRAMBASE = (uint32_t)DMA_ChannelDescriptors;		//将结构DMA_ChannelDescriptors至RAMBASE
@@ -329,11 +330,13 @@ void DMA_Init_ADC(ADCCH_enum ch ,DMACH_enum dmach,uint32 freq, void *SADDR, void
                                | DMA_CHANNEL_CFG_BURSTPOWER(0)      //burst传输为4个字节
                                | DMA_CHANNEL_CFG_CHPRIORITY(0)      //优先级设置   0为最高
                                );
+															 
     
     DMA0->COMMON[0].SETVALID = 1<<dmach;
     DMA0->COMMON[0].INTENSET = 1<<dmach;
 
     DMA0->CHANNEL[dmach].XFERCFG = DMA_ChannelDescriptors[dmach].xfercfg;
+		enable_irq(DMA0_IRQn);
 }
 
 void DMA_Init_ADC_once(ADCCH_enum ch ,DMACH_enum dmach, ADCRES_enum resolution,uint32 freq, void *SADDR, void *DADDR, uint16 count)

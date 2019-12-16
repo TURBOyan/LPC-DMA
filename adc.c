@@ -252,11 +252,11 @@ void ADC_Steup(void)
     Chip_ADC_SetupSequencer(LPC_ADC,ADC_SEQA_IDX,		    						
 						ADC_SEQ_CTRL_SEQ_ENA |
 						ADC_SEQ_CTRL_CHANNEL_EN(ADC_INPUT_CHANNEL) |
-                                                ADC_SEQ_CTRL_TRIGGER(2) |
+            ADC_SEQ_CTRL_TRIGGER(2) |
 						ADC_SEQ_CTRL_HWTRIG_POLPOS |
-                                                ADC_SEQ_CTRL_HWTRIG_SYNCBYPASS |
+            ADC_SEQ_CTRL_HWTRIG_SYNCBYPASS |
 						ADC_SEQ_CTRL_MODE_EOS |
-                                                ADC_SEQ_CTRL_SEQ_ENA);
+            ADC_SEQ_CTRL_SEQ_ENA);
     /* Enable Sequence A interrupt */
     Chip_ADC_EnableInt(LPC_ADC, ADC_INTEN_SEQA_ENABLE);
     

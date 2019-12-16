@@ -199,14 +199,31 @@ void PIN_INT7_DriverIRQHandler(void)
     mt9v032_vsync();        //总钻风场中断代码，当使用总钻风的时候执行该代码
 }
 
+extern uint16 data[30];
 void DMA0_DriverIRQHandler(void)
 {
-    if(READ_DMA_FLAG(MT9V032_DMA_CH))
+    if(READ_DMA_FLAG(DMA_CH0))
     {
-        CLEAR_DMA_FLAG(MT9V032_DMA_CH);
-				OLED_P6x8Int(55, 0, 573275275, 5);
-        //mt9v032_dma();      //总钻风dma中断代码，当使用总钻风的时候执行该代码
+        CLEAR_DMA_FLAG(DMA_CH0);
+				OLED_P6x8Int(55, 6, 3243, 5);
+				OLED_P6x8Int(0, 0, (data[0]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
+				OLED_P6x8Int(0, 1, (data[4]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
+				OLED_P6x8Int(0, 2, (data[7]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
+				OLED_P6x8Int(0, 3, (data[9]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
+				OLED_P6x8Int(0, 4, (data[14]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
+				OLED_P6x8Int(0, 5, (data[16]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
+				OLED_P6x8Int(0, 6, (data[19]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
+				gpio_toggle(Beep);
     }
+}
+
+void ADC0_SEQA_DriverIRQHandler(void)
+{
+    if(READ_ADCA_FLAG)
+    {
+       CLEAR_ADCA_FLAG;
+			 Beep_On;
+		}
 }
 
 

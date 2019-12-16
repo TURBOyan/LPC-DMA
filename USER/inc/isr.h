@@ -31,6 +31,7 @@ void RIT_DriverIRQHandler(void);
 
 void PIN_INT7_DriverIRQHandler(void);
 void DMA0_DriverIRQHandler(void);
+void ADC0_SEQA_DriverIRQHandler(void);
 void FLEXCOMM5_DriverIRQHandler(void);
 
 #endif
