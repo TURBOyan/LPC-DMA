@@ -65,6 +65,8 @@
 #include "SelfBuild_Mecanum_Ctrl.h"
 #include "SelfBuild_control.h"
 
+#include "Fourier_DMA.h"
+
 #include "MPU_ForUser.h"
 
 

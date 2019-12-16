@@ -202,19 +202,21 @@ void PIN_INT7_DriverIRQHandler(void)
 extern uint16 data[30];
 void DMA0_DriverIRQHandler(void)
 {
-    if(READ_DMA_FLAG(DMA_CH0))
-    {
-        CLEAR_DMA_FLAG(DMA_CH0);
-				OLED_P6x8Int(55, 6, 3243, 5);
-				OLED_P6x8Int(0, 0, (data[0]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-				OLED_P6x8Int(0, 1, (data[4]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-				OLED_P6x8Int(0, 2, (data[7]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-				OLED_P6x8Int(0, 3, (data[9]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-				OLED_P6x8Int(0, 4, (data[14]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-				OLED_P6x8Int(0, 5, (data[16]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-				OLED_P6x8Int(0, 6, (data[19]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-				gpio_toggle(Beep);
-    }
+//    if(READ_DMA_FLAG(Fourier_DMACH))
+//    {
+//        CLEAR_DMA_FLAG(Fourier_DMACH);
+//				OLED_P6x8Int(55, 6, 3243, 5);
+//				OLED_P6x8Int(0, 0, (Fourier_Data.ADCCH_Data[ADC_CH6_B0].Buff[0] >> ADC_DAT_RESULT_SHIFT)&0xfff, 5);
+//				OLED_P6x8Int(0, 1, (Fourier_Data.ADCCH_Data[ADC_CH6_B0].Buff[4]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
+//				OLED_P6x8Int(0, 2, (Fourier_Data.ADCCH_Data[ADC_CH6_B0].Buff[7]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
+//				OLED_P6x8Int(0, 3, (Fourier_Data.ADCCH_Data[ADC_CH6_B0].Buff[9]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
+//				OLED_P6x8Int(0, 4, (Fourier_Data.ADCCH_Data[ADC_CH6_B0].Buff[14]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
+//				OLED_P6x8Int(0, 5, (Fourier_Data.ADCCH_Data[ADC_CH6_B0].Buff[16]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
+//				OLED_P6x8Int(0, 6, (Fourier_Data.ADCCH_Data[ADC_CH6_B0].Buff[19]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
+//				gpio_toggle(Beep);
+//				Fourier_Data.ADCCH_Data[ADC_CH6_B0].START_Flag = 0;
+//    }
+		Fourier_interrupt_Func();
 }
 
 void ADC0_SEQA_DriverIRQHandler(void)

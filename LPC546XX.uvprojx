@@ -335,7 +335,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>.\CMSIS;.\Drives\common;.\Drives\inc;.\seekfree;.\USER\inc;.\USER\_OLEDMenu;.\USER\_SONIC;.\USER\_PID;.\USER\_BALANCE;.\USER\_CONTROL;.\USER\_ELECTRON;.\USER\_CAMERA;.\USER\_ELECTRON\_MCP41;.\USER\_UI;.\USER\_MECANUM_CTRL;.\USER\_OLED;.\USER\_DATAHELPER;.\USER\DMP\MPU9250;.\USER\DMP\driver\include;.\USER\DMP\driver\stm32L;.\USER\DMP\driver\eMPL;.\USER\DMP\eMPL-hal;.\USER\DMP\mllite;.\USER\DMP\IIC;.\USER\DMP\mpl;.\USER\DMP\MPU_ForUser</IncludePath>
+              <IncludePath>.\CMSIS;.\Drives\common;.\Drives\inc;.\seekfree;.\USER\inc;.\USER\_OLEDMenu;.\USER\_SONIC;.\USER\_PID;.\USER\_BALANCE;.\USER\_CONTROL;.\USER\_ELECTRON;.\USER\_CAMERA;.\USER\_ELECTRON\_MCP41;.\USER\_UI;.\USER\_MECANUM_CTRL;.\USER\_OLED;.\USER\_DATAHELPER;.\USER\DMP\MPU9250;.\USER\DMP\driver\include;.\USER\DMP\driver\stm32L;.\USER\DMP\driver\eMPL;.\USER\DMP\eMPL-hal;.\USER\DMP\mllite;.\USER\DMP\IIC;.\USER\DMP\mpl;.\USER\DMP\MPU_ForUser;.\USER\_FOURIER_DMA</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -615,6 +615,11 @@
           <GroupName>user_h</GroupName>
           <Files>
             <File>
+              <FileName>Fourier_DMA.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\USER\_FOURIER_DMA\Fourier_DMA.h</FilePath>
+            </File>
+            <File>
               <FileName>SelfBuild_control.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\USER\_CONTROL\SelfBuild_control.h</FilePath>
@@ -674,6 +679,11 @@
         <Group>
           <GroupName>user_c</GroupName>
           <Files>
+            <File>
+              <FileName>Fourier_DMA.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\USER\_FOURIER_DMA\Fourier_DMA.c</FilePath>
+            </File>
             <File>
               <FileName>SelfBuild_control.c</FileName>
               <FileType>1</FileType>

@@ -11,26 +11,13 @@ int main(void)
 	uint32 i,j;
 	get_clk();
  	Init_ALL();
-	
-	DMA_Init_ADC(ADC_CH6_B0 ,DMA_CH0,20, (void*)ADC0->SEQ_GDAT[0],(void*)&data[0], 5);
+	Fourier_Init(ADC_CH6_B0);
+	Fourier_Init(ADC_CH11_A23);
 	while(1)
 	{
-//		Beep_On;
-//		OLED_P6x8Int(0, 0, (data[0]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-//		OLED_P6x8Int(0, 1, (data[4]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-//		OLED_P6x8Int(0, 2, (data[7]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-//		OLED_P6x8Int(0, 3, (data[9]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-//		OLED_P6x8Int(0, 4, (data[14]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-//		OLED_P6x8Int(0, 5, (data[16]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-//		OLED_P6x8Int(0, 6, (data[19]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-
-//		OLED_P6x8Int(50, 0, ADC0->SEQ_GDAT[0]>>31, -5);
-//		j=(ADC0->SEQ_GDAT[0]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2);
-//		OLED_P6x8Int(50, 1, ADC0->SEQ_GDAT[0], -5);
-//		OLED_P6x8Int(50, 2, j, -5);
-
-//	  adc_convert(ADC_CH6_B0, ADC_12BIT);
-//		Beep_Off;
-//		adc_convert(ADC_CH6_B0, ADC_12BIT);
+		Fourier_Once(ADC_CH6_B0,ADC_8BIT);
+		OLED_P6x8Int(0, 0, (Fourier_Data.Buff[0]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-Fourier_Data.ADCCH_Data[ADC_CH11_A23].resolution)*2), 5);
+		Fourier_Once(ADC_CH11_A23,ADC_8BIT);
+		OLED_P6x8Int(0, 1, (Fourier_Data.Buff[0]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-Fourier_Data.ADCCH_Data[ADC_CH11_A23].resolution)*2), 5);
 	}
 }
