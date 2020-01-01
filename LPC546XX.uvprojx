@@ -685,11 +685,6 @@
               <FilePath>.\USER\_FOURIER_DMA\Fourier_DMA.c</FilePath>
             </File>
             <File>
-              <FileName>Fourier_CORDIC.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\USER\_FOURIER_DMA\Fourier_CORDIC.c</FilePath>
-            </File>
-            <File>
               <FileName>SelfBuild_control.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\USER\_CONTROL\SelfBuild_control.c</FilePath>

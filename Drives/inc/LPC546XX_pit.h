@@ -55,7 +55,4 @@ long long pit_get(void);
 void pit_clean(void);
 void pit_deinit(void);
 
-
-
-
 #endif
