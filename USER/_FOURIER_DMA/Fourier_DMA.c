@@ -7,26 +7,31 @@ struct Fourier_Data_t Fourier_Data;		//定义保存本底层所有用户数据的结构体
 
 /********************************FFT相关变量及初始化*****************************************/
 //cos_sin_search[n][0]=(2/采样点数n)*cos(2*Pi*信号频率f*n*采样周期T)
-int8 cos_sin_search[11][2]=		//正余弦查表
+//cos_sin_search[n][1]=(2/采样点数n)*sin(2*Pi*信号频率f*n*采样周期T)
+//float cos_sin_search[11][2]=		//正余弦查表，采样点5个，原信号频率20khz
+//{							//k=
+//  {  0.40,  0.00},			//0
+//  {  0.12,  0.38},			//1
+//  { -0.32,  0.24},			//2
+//  { -0.32, -0.24},			//3
+//  {  0.12, -0.38},		  //4
+//  {  0.40,  0.00},			//5
+//};
+
+float cos_sin_search[11][2]=		//正余弦查表，采样点10个，原信号频率20khz
 {							//k=
-  { 100,  00},			//0
-  {  81,  59},			//1
-  {  31,  95},			//2
-  { -31,  95},			//3
-  { -81,  59},		  //4
-  {-100,  00},			//5
-  { -81 ,-59},			//6
-  { -31, -95},			//7
-  {  31, -95},			//8
-  {  81, -59},			//9
-  { 100,  00}			//10
+  { 1,  00},			//0
+  {  0.81,  0.59},			//1
+  {  0.31,  0.95},			//2
+  { -0.31,  0.95},			//3
+  { -0.81,  0.59},		  //4
+  {-1,  00},			//5
+  { -0.81 ,-0.59},			//6
+  { -0.31, -0.95},			//7
+  {  0.31, -0.95},			//8
+  {  0.81, -0.59},			//9
+  { 1,  00}			//10
 };
-
-40
-39.9
-
-
-
 
 //ALIGN(512)设置字节对齐
 //定义傅里叶DMA的传输描述符
@@ -64,8 +69,8 @@ void Fourier_DMA_Init(DMACH_enum dmach, void *SADDR, void *DADDR, uint16 count)
 			
     FourierDMA_ChannelDescriptors[dmach].srcEndAddr = (uint32*)SADDR;		//设置源地址
     FourierDMA_ChannelDescriptors[dmach].dstEndAddr = (uint16*)DADDR+count-1;	//设置目的地址
-	
     FourierDMA_ChannelDescriptors[dmach].linkToNextDesc   = 0;
+	
 		FourierDMA_ChannelDescriptors[dmach].xfercfg=  ( 0
 																			 | DMA_CHANNEL_XFERCFG_RELOAD_MASK        //参数自动重载
 																			 | DMA_CHANNEL_XFERCFG_CFGVALID_MASK
@@ -84,9 +89,10 @@ void Fourier_DMA_Init(DMACH_enum dmach, void *SADDR, void *DADDR, uint16 count)
     DMA0->CHANNEL[dmach].CFG = ( 0
                                | DMA_CHANNEL_CFG_HWTRIGEN_MASK			
                                | DMA_CHANNEL_CFG_TRIGPOL_MASK       //1 上升沿
-                               | DMA_CHANNEL_CFG_TRIGTYPE_MASK   		//0 :边沿触发
-                               | DMA_CHANNEL_CFG_TRIGBURST_MASK     //启用burst传输
-                               | DMA_CHANNEL_CFG_BURSTPOWER(0)      //burst传输为4个字节
+                            //   | DMA_CHANNEL_CFG_TRIGTYPE_MASK   		//0 :边沿触发
+                              // | DMA_CHANNEL_CFG_TRIGBURST_MASK     //启用burst传输
+                              // | DMA_CHANNEL_CFG_BURSTPOWER(0)      //burst传输为4个字节
+															// | DMA_CHANNEL_CFG_SRCBURSTWRAP_MASK
                                | DMA_CHANNEL_CFG_CHPRIORITY(0)      //优先级设置   0为最高
                                );
 
@@ -94,9 +100,6 @@ void Fourier_DMA_Init(DMACH_enum dmach, void *SADDR, void *DADDR, uint16 count)
     DMA0->COMMON[0].INTENSET = 1<<dmach;
 
     DMA0->CHANNEL[dmach].XFERCFG = FourierDMA_ChannelDescriptors[dmach].xfercfg;	//保存配置
-		
-		enable_irq(DMA0_IRQn);		//使能DMA0中断
-		set_irq_priority(DMA0_IRQn,0);//设置DMA中断为最高优先级
 		
 		if((DMA_CHANNEL_XFERCFG_CFGVALID_MASK & DMA0->CHANNEL[dmach].XFERCFG) == 0)	//如果配置失败则断言
 		{
@@ -142,7 +145,7 @@ void Fourier_ADC_Init(ADCCH_enum ch)
     ADC0->CTRL = ( 0
                  | ADC_CTRL_CLKDIV(temp_div-1)      //分频最大不超过80M
                  | ADC_CTRL_RESOL(0x0)              //默认12位分辨率
-               //  | ADC_CTRL_BYPASSCAL_MASK        //采样校准  0:启用校准功能    1：关闭校准   屏蔽为0
+                 | ADC_CTRL_BYPASSCAL_MASK        //采样校准  0:启用校准功能    1：关闭校准   屏蔽为0
                  | ADC_CTRL_TSAMP(0)                //采样周期，设置约为2.5个ADC时钟
                  );
     ADC0->STARTUP = ADC_STARTUP_ADC_ENA_MASK;           //开启ADC
@@ -151,18 +154,11 @@ void Fourier_ADC_Init(ADCCH_enum ch)
     {
         ASSERT(0);//ADC没有上电 进入断言失败
     }
-		
-		
-    
     ADC0->CALIB = ADC_CALIB_CALIB_MASK;                 //ADC校准
     while(ADC_CALIB_CALIB_MASK == (ADC0->CALIB & ADC_CALIB_CALIB_MASK));
     
     ADC0->STARTUP |= ADC_STARTUP_ADC_INIT_MASK;         //ADC初始化
     while(ADC_STARTUP_ADC_INIT_MASK == (ADC0->STARTUP & ADC_STARTUP_ADC_INIT_MASK)){};
-			
-		ADC0->INTEN= (0										//使能ADC中断
-						 |ADC_INTEN_SEQA_INTEN_MASK
-							);
 }
 
 void Fourier_Init(ADCCH_enum ch)
@@ -175,9 +171,6 @@ void Fourier_Init(ADCCH_enum ch)
 void Fourier_Once(ADCCH_enum ch,ADCRES_enum resolution)
 {
 		while(Fourier_Data.Busy_Flag);//等待其他通道计算完成
-		
-		disable_irq(DMA0_IRQn);		//使能DMA0中断
-		ADC0->INTEN &= ~ADC_INTEN_SEQA_INTEN_MASK;	//失能ADC中断
 		
 		Fourier_Data.ADCCH_Data[ch].START_Flag = 1;	//置位转换标志位
 		Fourier_Data.Busy_Flag = 1;		//置位全局忙标志，防止出现两个通道同时开始转换的情况
@@ -204,33 +197,32 @@ void Fourier_Once(ADCCH_enum ch,ADCRES_enum resolution)
 
 		Fourier_dma_reload(Fourier_DMACH, (void*)&ADC0->SEQ_GDAT[0],(void*)&Fourier_Data.Buff[0],ADC_Samp_SIZE);
 		
-		pit_start();
 		enable_irq(DMA0_IRQn);		//使能DMA0中断
 		ADC0->INTEN= (0										//使能ADC中断
 						 |ADC_INTEN_SEQA_INTEN_MASK
 							);	
 							
-		while(Fourier_Data.ADCCH_Data[ch].START_Flag || pit_get_us()>200);		//等待计算完成
-		pit_clean();
-		Fourier_Data.Busy_Flag = 0;	//清全局忙标志
-	//	Fourier_Data.ADCCH_Data[ch].START_Flag=0;
+		while(Fourier_Data.ADCCH_Data[ch].START_Flag);		//等待计算完成
+		
+		Fourier_Data.Busy_Flag = 0;	//清全局忙标志	
+		
 		disable_irq(DMA0_IRQn);		//失能DMA0中断
 		ADC0->INTEN &= ~ADC_INTEN_SEQA_INTEN_MASK;									//失能ADC中断
+		
 		memset((void*)&Fourier_Data.Buff,0,sizeof(Fourier_Data.Buff));		//清空数组
 }
 
+int16 An,Bn;
 static double FFT(uint16 *adc_data)
 {
-	int32 An,Bn;
 	uint16 Begin_Point=ADC_Samp_SIZE-ADC_Samp_num;
+	An=0;
+	Bn=0;
 	for(uint8 k=1;k<=ADC_Samp_num;k++)
 	{
 	  An+=adc_data[k+Begin_Point-1] * cos_sin_search[k][0];
 	  Bn+=adc_data[k+Begin_Point-1] * cos_sin_search[k][1];
 	}
-	An =(int16)(An/500.0);
-	Bn =(int16)(Bn/500.0);
-
 	return sqrt(An*An+Bn*Bn);	//返回基波幅值
 }
 
@@ -247,7 +239,6 @@ static void Data_Filter_ForADC(struct Fourier_Data_t *ADC_Process,ADCCH_enum ch)
 	ADC_Process->ADCCH_Data[ch].Result = (uint16)(ADC_Process->ADCCH_Data[ch].Filt_BUF_SUM / FILTER_NUM / Ratio);	//对缓存区内数据作平均和滤波
 }
 
-		
 void Fourier_interrupt_Func(void)
 {
 		uint16 Data_Buff[ADC_Samp_SIZE]={0};
@@ -256,11 +247,11 @@ void Fourier_interrupt_Func(void)
         CLEAR_DMA_FLAG(Fourier_DMACH);
 				for(uint8 num=0;num < ADC_Samp_SIZE;num++)		//将buff内数据转换后缓存
 				{
-					Data_Buff[num] = ((Fourier_Data.Buff[num]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-Fourier_Data.ADCCH_Data[Fourier_Data.ADCCH_Save].resolution)*2));
+					Data_Buff[num] = (uint16)((Fourier_Data.Buff[num]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-Fourier_Data.ADCCH_Data[Fourier_Data.ADCCH_Save].resolution)*2));
 				}
-				Fourier_Data.ADCCH_Data[Fourier_Data.ADCCH_Save].Result_WithoutFilt=FFT(Data_Buff);	//基波幅值计算
-//				Data_Filter_ForADC(&Fourier_Data,Fourier_Data.ADCCH_Save);						//数据滑动滤波
-				
-				Fourier_Data.ADCCH_Data[Fourier_Data.ADCCH_Save].START_Flag = 0;		//清除起始标志位，以便下次转换
+				Fourier_Data.ADCCH_Data[Fourier_Data.ADCCH_Save].Result=Data_Buff[0];
+//				Fourier_Data.ADCCH_Data[Fourier_Data.ADCCH_Save].Result_WithoutFilt=(uint16)FFT(Data_Buff);	//基波幅值计算
+//				Data_Filter_ForADC(&Fourier_Data,Fourier_Data.ADCCH_Save);						//数据滑动滤波	
     }
+		Fourier_Data.ADCCH_Data[Fourier_Data.ADCCH_Save].START_Flag = 0;		//清除起始标志位，以便下次转换
 }

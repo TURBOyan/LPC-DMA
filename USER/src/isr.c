@@ -146,8 +146,8 @@ void FLEXCOMM0_DriverIRQHandler(void)
 					case 'Y': MPU_Data.Yaw_Save=MPU_Data.Yaw;	
 										MPU_Data.Yaw_Aid=-90;	break;//左转90度
 										
-					case 'p':	Elema_Unabsorb(Elema_Mid);Servo_Down;systick_delay_ms(2000);Servo_Up;break;//放棋子
-					case 'o': Elema_Absorb(Elema_Mid);Servo_Down;systick_delay_ms(2000);Servo_Up;	break;//吸棋子
+//					case 'p':	Elema_Unabsorb(Elema_Mid);Servo_Down;systick_delay_ms(2000);Servo_Up;break;//放棋子
+//					case 'o': Elema_Absorb(Elema_Mid);Servo_Down;systick_delay_ms(2000);Servo_Up;	break;//吸棋子
 //					case 'n': Elema_Unabsorb(Elema_Left);	break;//放左障碍
 //					case 'm': Elema_Unabsorb(Elema_Right);	break;//放右障碍
 					
@@ -201,20 +201,6 @@ void PIN_INT7_DriverIRQHandler(void)
 
 void DMA0_DriverIRQHandler(void)
 {
-//    if(READ_DMA_FLAG(Fourier_DMACH))
-//    {
-//        CLEAR_DMA_FLAG(Fourier_DMACH);
-//				OLED_P6x8Int(55, 6, 3243, 5);
-//				OLED_P6x8Int(0, 0, (Fourier_Data.ADCCH_Data[ADC_CH6_B0].Buff[0] >> ADC_DAT_RESULT_SHIFT)&0xfff, 5);
-//				OLED_P6x8Int(0, 1, (Fourier_Data.ADCCH_Data[ADC_CH6_B0].Buff[4]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-//				OLED_P6x8Int(0, 2, (Fourier_Data.ADCCH_Data[ADC_CH6_B0].Buff[7]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-//				OLED_P6x8Int(0, 3, (Fourier_Data.ADCCH_Data[ADC_CH6_B0].Buff[9]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-//				OLED_P6x8Int(0, 4, (Fourier_Data.ADCCH_Data[ADC_CH6_B0].Buff[14]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-//				OLED_P6x8Int(0, 5, (Fourier_Data.ADCCH_Data[ADC_CH6_B0].Buff[16]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-//				OLED_P6x8Int(0, 6, (Fourier_Data.ADCCH_Data[ADC_CH6_B0].Buff[19]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-ADC_12BIT)*2), 5);
-//				gpio_toggle(Beep);
-//				Fourier_Data.ADCCH_Data[ADC_CH6_B0].START_Flag = 0;
-//    }
 		Fourier_interrupt_Func();
 }
 

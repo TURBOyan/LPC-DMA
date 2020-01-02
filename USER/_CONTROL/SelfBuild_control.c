@@ -53,10 +53,10 @@ void Init_ALL(void)
 //	while(MPU_Init_ForUser());
 
 //  /*----------------------------菜单调参----------------------------------*/
-	DisableInterrupts;                          //关闭所有中断，防止菜单调节过程中出现中断
-	Menu_Init();                                  //初始化菜单
-	while(!Menu_Work()) systick_delay_ms(200);    //菜单每200ms工作一次，并根据是否按下“关闭菜单”选项后（函数返回0）结束死循环
-	EnableInterrupts;
+//	DisableInterrupts;                          //关闭所有中断，防止菜单调节过程中出现中断
+//	Menu_Init();                                  //初始化菜单
+//	while(!Menu_Work()) systick_delay_ms(200);    //菜单每200ms工作一次，并根据是否按下“关闭菜单”选项后（函数返回0）结束死循环
+//	EnableInterrupts;
 
 	
 //	Elema_Absorb(Elema_Left);

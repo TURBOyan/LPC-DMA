@@ -15,6 +15,12 @@
 #endif
 
 #ifdef new_PCB
+//	#define  OLED_SCL_PIN	B19			//ÐÂ°æ
+//	#define  OLED_SDA_PIN	B21
+//	#define  OLED_RST_PIN	B1
+//	#define  OLED_DC_PIN	B2
+//	#define  OLED_CS_PIN	B9
+	
 	#define  OLED_SCL_PIN	B21			//ÐÂ°æ
 	#define  OLED_SDA_PIN	B22
 	#define  OLED_RST_PIN	B13

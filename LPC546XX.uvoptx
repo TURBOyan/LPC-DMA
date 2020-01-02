@@ -118,6 +118,7 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>DLGUARM</Key>
+          <Name>d</Name>
         </SetRegEntry>
         <SetRegEntry>
           <Number>0</Number>
@@ -171,6 +172,11 @@
           <count>3</count>
           <WinNumber>1</WinNumber>
           <ItemText>cos_sin_search</ItemText>
+        </Ww>
+        <Ww>
+          <count>4</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>Data_Buff</ItemText>
         </Ww>
       </WatchWindow1>
       <MemoryWindow1>
