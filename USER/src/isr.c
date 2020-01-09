@@ -209,7 +209,6 @@ void ADC0_SEQA_DriverIRQHandler(void)
     if(READ_ADCA_FLAG)
     {
        CLEAR_ADCA_FLAG;
-			 Beep_On;
 		}
 }
 
