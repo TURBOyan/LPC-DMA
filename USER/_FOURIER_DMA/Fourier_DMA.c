@@ -176,20 +176,19 @@ static void Data_Filter_ForADC(struct Fourier_Data_t *ADC_Process,ADCCH_enum ch)
 	
 	ADC_Process->ADCCH_Data[ch].Filt_point= (ADC_Process->ADCCH_Data[ch].Filt_point == (FILTER_NUM-1))?0:ADC_Process->ADCCH_Data[ch].Filt_point+1;	//指针刷新
 	
-	ADC_Process->ADCCH_Data[ch].Result = (uint16)(ADC_Process->ADCCH_Data[ch].Filt_BUF_SUM / FILTER_NUM / Ratio);	//对缓存区内数据作平均和滤波
+	ADC_Process->ADCCH_Data[ch].Result = (uint16)(ADC_Process->ADCCH_Data[ch].Filt_BUF_SUM / (float)FILTER_NUM / (float)Ratio);	//对缓存区内数据作平均和滤波
 }
 
 void Fourier_Once(ADCCH_enum ch,ADCRES_enum resolution)
 {
+		static uint16 Buff[ADC_Samp_SIZE+10];
 		while(Fourier_Data.Busy_Flag);//等待其他通道计算完成
 		
 		Fourier_Data.ADCCH_Data[ch].START_Flag = 1;	//置位转换标志位
 		Fourier_Data.Busy_Flag = 1;		//置位全局忙标志，防止出现两个通道同时开始转换的情况
 		Fourier_Data.ADCCH_Data[ch].resolution = resolution;	//保存分辨率
 		Fourier_Data.ADCCH_Save = ch;			//保存此时正在转换的通道，防止出现两个通道同时开始转换的情况
-		memset((void*)&Fourier_Data.Buff,0,sizeof(Fourier_Data.Buff));		//清空数组
 	
-		systick_delay_us(1000);
 	  ADC0->CTRL &= ~ADC_CTRL_RESOL_MASK;
     ADC0->CTRL |= ADC_CTRL_RESOL(resolution);   //设置分辨率	
 		ADC0->SEQ_CTRL[0]= 0;		//首先清零SEQB_ENA寄存器，防止生成虚假置位
@@ -203,7 +202,7 @@ void Fourier_Once(ADCCH_enum ch,ADCRES_enum resolution)
 											|ADC_SEQ_CTRL_SEQ_ENA_MASK				//使能ADC转换
 										 );
 		ADC0->SEQ_CTRL[0] |= ADC_SEQ_CTRL_START_MASK; 	//开启ADC转换
-		Fourier_dma_reload(Fourier_DMACH, (void*)&ADC0->SEQ_GDAT[0],(void*)&Fourier_Data.Buff[0],ADC_Samp_SIZE);
+		Fourier_dma_reload(Fourier_DMACH, (void*)&ADC0->SEQ_GDAT[0],(void*)&Buff[0],ADC_Samp_SIZE);
 		
 		enable_irq(DMA0_IRQn);		//使能DMA0中断
 		ADC0->INTEN= (0										//使能ADC中断
@@ -217,9 +216,8 @@ void Fourier_Once(ADCCH_enum ch,ADCRES_enum resolution)
 		uint16 Data_Buff[ADC_Samp_SIZE]={0};
 		for(uint8 num=0;num < ADC_Samp_SIZE;num++)		//将buff内数据转换后缓存
 		{
-				Data_Buff[num] = (uint16)((Fourier_Data.Buff[num]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-Fourier_Data.ADCCH_Data[Fourier_Data.ADCCH_Save].resolution)*2));
+				Data_Buff[num] = (uint16)((Buff[num]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-Fourier_Data.ADCCH_Data[Fourier_Data.ADCCH_Save].resolution)*2));
 		}
-
 		Fourier_Data.ADCCH_Data[Fourier_Data.ADCCH_Save].Result_WithoutFilt=(uint16)FFT(Data_Buff);	//基波幅值计算
 		Data_Filter_ForADC(&Fourier_Data,Fourier_Data.ADCCH_Save);						//数据滑动滤波	
 		

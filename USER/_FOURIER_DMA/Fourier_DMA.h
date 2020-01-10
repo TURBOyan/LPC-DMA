@@ -17,7 +17,7 @@
 #define ADC_SampFreq  (Wave_Freq*ADC_Samp_num)	//ADC采样频率，必须是信号频率的ADC_Samp_num倍
 
 #define Ratio 	5.0f		//滤波系数
-#define FILTER_NUM 5		// 滤波深度，深度越大，数据跟随性越差，酌情设置，一般设置为3
+#define FILTER_NUM 3		// 滤波深度，深度越大，数据跟随性越差，酌情设置，一般设置为3
 
 ALIGN(512) extern dma_descriptor_t FourierDMA_ChannelDescriptors[DMA_CHMAX];
 
@@ -31,9 +31,9 @@ extern struct Fourier_Data_t
 		__IO  uint8 Reserve_3[10];
 		__IO  uint16 Result_WithoutFilt;			//电压数据结果(未滑动滤波)
 		__IO  uint8 Reserve_4[10];
-		__IO	int32 Filt_BUF[FILTER_NUM+3];			//滑动滤波缓冲区
+		__IO	uint32 Filt_BUF[FILTER_NUM+3];			//滑动滤波缓冲区
 		__IO  uint8 Reserve_5[10];
-		__IO	int32 Filt_BUF_SUM;							//滑动滤波累加器
+		__IO	uint32 Filt_BUF_SUM;							//滑动滤波累加器
 		__IO  uint8 Reserve_6[10];
 		__IO	uint8 Filt_point;								//数据指针
   	__IO  uint8 Reserve_7[10];

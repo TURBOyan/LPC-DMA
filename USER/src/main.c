@@ -19,12 +19,12 @@ int main(void)
 //		gpio_set(Beep,1);
 //		Fourier_Once(ADC_CH6_B0   ,ADC_12BIT);
 //		gpio_set(Beep,0);
-		Fourier_Once(ADC_CH6_B0   ,ADC_12BIT);
-		Fourier_Once(ADC_CH11_A23 ,ADC_6BIT);
-		Fourier_Once(ADC_CH0_A10  ,ADC_6BIT);
-		Fourier_Once(ADC_CH3_A15  ,ADC_6BIT);
-		Fourier_Once(ADC_CH4_A16  ,ADC_6BIT);
-		Fourier_Once(ADC_CH5_A31  ,ADC_6BIT);
+		Fourier_Once(ADC_CH6_B0   ,ADC_8BIT);
+		Fourier_Once(ADC_CH11_A23 ,ADC_8BIT);
+		Fourier_Once(ADC_CH0_A10  ,ADC_8BIT);
+		Fourier_Once(ADC_CH3_A15  ,ADC_8BIT);
+		Fourier_Once(ADC_CH4_A16  ,ADC_8BIT);
+		Fourier_Once(ADC_CH5_A31  ,ADC_8BIT);
 		OLED_P6x8Int(0, 0,Fourier_Data.ADCCH_Data[ADC_CH6_B0].Result, 5);
 		OLED_P6x8Int(0, 1,Fourier_Data.ADCCH_Data[ADC_CH11_A23].Result, 5);
 		OLED_P6x8Int(0, 2,Fourier_Data.ADCCH_Data[ADC_CH0_A10].Result, 5);
