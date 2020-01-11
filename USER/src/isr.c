@@ -201,11 +201,6 @@ void PIN_INT7_DriverIRQHandler(void)
 
 void DMA0_DriverIRQHandler(void)
 {
-	if(DMA0->COMMON[0].ERRINT!=0)
-	{
-		while(1);
-	}
-	
 		Fourier_interrupt_Func();
 }
 

@@ -9,24 +9,28 @@
 
 /** Fourier_Data - 定义保存本底层所有用户数据的结构体 */
 struct Fourier_Data_t Fourier_Data;	
+struct kalman_Data_t kalman_Data[14];
 /** FourierDMA_ChannelDescriptors - 定义傅里叶DMA的传输描述符,ALIGN(512)->设置字节对齐 */
 ALIGN(512) dma_descriptor_t FourierDMA_ChannelDescriptors[DMA_CHMAX]={0};
 
-/*!
- * @addtogroup 基波幅值提取初始化
- * @{
- */
+/**
+ *基波幅值提取初始化
+ *@param DMACH_enum dmach 设置不同ADC端口数据传输的DMA通道号,范围DMA_CH0~DMA_CH29
+ *   		 ADCCH_enum ch 		设置AD转换端口
+ *@return 无
+ *@example Fourier_Init(DMA_CH0,ADC_CH6_B0);  设置B0口的基波幅值提取方式，数据传输用DMA_CH0通道
+*/
 void Fourier_Init(DMACH_enum dmach,ADCCH_enum ch)
 {
 	/* ----------------------------------------------------------------------------
 		 -- 卡尔曼滤波参数初始化
 		 ---------------------------------------------------------------------------- */
-		Fourier_Data.ADCCH_Data[ch].LastP=0.02;
-		Fourier_Data.ADCCH_Data[ch].Now_P=0;
-		Fourier_Data.ADCCH_Data[ch].out=0;
-		Fourier_Data.ADCCH_Data[ch].Kg=0;
-		Fourier_Data.ADCCH_Data[ch].Q=0.001;
-		Fourier_Data.ADCCH_Data[ch].R=0.2;
+		kalman_Data[ch].LastP=0.02;
+		kalman_Data[ch].Now_P=0;
+		kalman_Data[ch].out=0;
+		kalman_Data[ch].Kg=0;
+		kalman_Data[ch].Q=0.001;
+		kalman_Data[ch].R=0.2;
 	/* ----------------------------------------------------------------------------
 		 -- SCT触发信号初始化
 		 ---------------------------------------------------------------------------- */
@@ -88,7 +92,7 @@ void Fourier_Init(DMACH_enum dmach,ADCCH_enum ch)
 	/* ----------------------------------------------------------------------------
 		 -- DMA初始化
 		 ---------------------------------------------------------------------------- */
-		Fourier_Data.ADCCH_Data[ch].DMA_CH=dmach;	//保存DMA传输通道
+		Fourier_Data.DMA_CH[ch]=dmach;	//保存DMA传输通道
 		SYSCON->AHBCLKCTRLSET[0] = SYSCON_AHBCLKCTRL_DMA_MASK;              //打开DMA时钟
 		SYSCON->PRESETCTRLCLR[0] = SYSCON_PRESETCTRL_DMA0_RST_MASK;         //清除DMA复位时钟
 		
@@ -118,9 +122,23 @@ void Fourier_Init(DMACH_enum dmach,ADCCH_enum ch)
 		
 		
 		DMA0->CHANNEL[dmach].XFERCFG = FourierDMA_ChannelDescriptors[dmach].xfercfg;	//保存配置
+		
+		enable_irq(DMA0_IRQn);		//使能DMA0中断
+		ADC0->INTEN= (0						//使能ADC中断
+						 |ADC_INTEN_SEQA_INTEN_MASK
+							);
 
 }
 
+/**
+ *DMA参数重载（内部函数，无需调用）
+ *@param DMACH_enum dmach 设置传输的DMA通道号,范围DMA_CH0~DMA_CH29
+ *   		 void *SADDR 			DMA传输源地址
+				 void *DADDR			DMA传输目的地址
+				 uint16 count			传输次数
+ *@return 无
+ *@example Fourier_Init(DMA_CH0,ADC_CH6_B0);  设置B0口的基波幅值提取方式，数据传输用DMA_CH0通道
+*/
 //使用__STATIC_INLINE为了将这段函数内嵌到使用该函数的地方，这样可以减少函数调用的时间
 __STATIC_INLINE void Fourier_dma_reload(DMACH_enum dmach, void *SADDR, void *DADDR, uint16 count)//DMA参数重载  重新设置参数无需调用初始化
 {
@@ -181,53 +199,29 @@ __STATIC_INLINE void IRQ_Ctrl_ADC_DMA(uint8 ONorOFF)
 		}
 }
 
+uint8 START_FLAG=0;
 void Fourier_DMAReadBuff(ADCCH_enum ch,ADCRES_enum resolution,uint16 *Buff_Out)
 {
 		static vuint32 Buff[ADC_Samp_SIZE+10];
+		uint32 Buff2[ADC_Samp_SIZE+10];
 	
 		while(Fourier_Data.Busy_Flag);							//等待其他通道计算完成，保证无论何时CPU只完整处理一个通道
-	
-		Fourier_Data.ADCCH_Data[ch].START_Flag = 1;	//置位转换标志位
+		START_FLAG=1;
 		Fourier_Data.Busy_Flag = 1;									//置位全局忙标志，防止出现两个通道同时开始转换的情况
 		Fourier_Data.ADCCH_Save = ch;								//保存此时正在转换的通道，防止出现两个通道同时开始转换的情况
 
-		Fourier_adc_reload(ch,resolution);	//ADC转换参数重载
-		Fourier_dma_reload(Fourier_Data.ADCCH_Data[ch].DMA_CH, (void*)&ADC0->SEQ_GDAT[0],(void*)&Buff[0],ADC_Samp_SIZE);//DMA转换参数重载
+		Fourier_adc_reload(ch,resolution);	//ADC参数重载
+		Fourier_dma_reload(Fourier_Data.DMA_CH[ch], (void*)&ADC0->SEQ_GDAT[0],(void*)&Buff[0],ADC_Samp_SIZE);//DMA参数重载
 	
-		IRQ_Ctrl_ADC_DMA(1);	//打开中断
-	
-		while(DMA0->CHANNEL[Fourier_Data.ADCCH_Data[ch].DMA_CH].CTLSTAT== 0x00){}	//等待传输完成
-			OLED_P6x8Int(0, 0,Buff[0], 5);
-			OLED_P6x8Int(0, 1,Buff[1], 5);
-			OLED_P6x8Int(0, 2,Buff[2], 5);
-			OLED_P6x8Int(0, 3,Buff[3], 5);
-			OLED_P6x8Int(0, 4,Buff[4], 5);
-			OLED_P6x8Int(0, 5,Buff[5], 5);
-			OLED_P6x8Int(0, 6,Buff[6], 5);
-			OLED_P6x8Int(50, 0,Buff[8], 5);
-			OLED_P6x8Int(50, 1,Buff[9], 5);
-			OLED_P6x8Int(50, 2,Buff[10], 5);
-			OLED_P6x8Int(50, 3,Buff[12], 5);
-			OLED_P6x8Int(50, 4,Buff[14], 5);
-			OLED_P6x8Int(50, 5,Buff[17], 5);
-			OLED_P6x8Int(50, 6,Buff[19], 5);
-			OLED_P6x8Int(95, 0,Buff[20], 5);
-			OLED_P6x8Int(95, 1,Buff[21], 5);
-			OLED_P6x8Int(95, 6,DMA0->CHANNEL[Fourier_Data.ADCCH_Data[ch].DMA_CH].CTLSTAT, 2);
-//		while(Fourier_Data.ADCCH_Data[ch].START_Flag)		//等待计算完成
-//		{
-//			if((DMA0->CHANNEL[Fourier_Data.ADCCH_Data[ch].DMA_CH].CTLSTAT & DMA_CHANNEL_CTLSTAT_TRIG_MASK) ==0)
-//			{
-//				Fourier_Data.ADCCH_Data[ch].START_Flag=0;
-//			}
-//				
-//		}
-	
-		IRQ_Ctrl_ADC_DMA(0);//关闭中断
-	
+		IRQ_Ctrl_ADC_DMA(1);
+		while(START_FLAG){}
+		IRQ_Ctrl_ADC_DMA(0);
+		
+		uint8 Carry=(ADC_SEQ_GDAT_RESULT_SHIFT+(3-resolution)*2);
 		for(uint8 num=0;num<ADC_Samp_SIZE;num++)	//输出数据
 		{
-				*(Buff_Out+num)=(uint16)((Buff[num]&ADC_SEQ_GDAT_RESULT_MASK)>>(ADC_SEQ_GDAT_RESULT_SHIFT+(3-resolution)*2));;
+				Buff2[num]=Buff[num];
+				*(Buff_Out+num)=(uint16)((Buff2[num]&ADC_SEQ_GDAT_RESULT_MASK)>>Carry);
 		}
 		Fourier_Data.Busy_Flag = 0;	//清全局忙标志		
 }
@@ -253,7 +247,7 @@ float cos_sin_search[11][2]=		//正余弦查表，采样点10个，原信号频率20khz
 double FFT(uint16 *adc_data)
 {
 	int16 An=0,Bn=0;
-	uint16 Begin_Point=ADC_Samp_SIZE-ADC_Samp_num;
+	uint16 Begin_Point=ADC_Samp_SIZE-ADC_Samp_num-5;
 	for(uint8 k=1;k<=ADC_Samp_num;k++)
 	{
 	  An+=(int16)adc_data[k+Begin_Point-1] * cos_sin_search[k][0];
@@ -268,31 +262,31 @@ double FFT(uint16 *adc_data)
  *   float input 需要滤波的参数的测量值（即传感器的采集值）
  *@return 滤波后的参数（最优值）
 */
-float kalmanFilter(struct Fourier_Data_t* KALMAN,ADCCH_enum ch,float input)
+float kalmanFilter(struct kalman_Data_t* KALMAN,float input)
 {
 	 //预测协方差方程：k时刻系统估算协方差 = k-1时刻的系统协方差 + 过程噪声协方差
-	 KALMAN->ADCCH_Data[ch].Now_P = KALMAN->ADCCH_Data[ch].LastP + KALMAN->ADCCH_Data[ch].Q;
+	 KALMAN->Now_P = KALMAN->LastP + KALMAN->Q;
 	 //卡尔曼增益方程：卡尔曼增益 = k时刻系统估算协方差 / （k时刻系统估算协方差 + 观测噪声协方差）
-	 KALMAN->ADCCH_Data[ch].Kg = KALMAN->ADCCH_Data[ch].Now_P / (KALMAN->ADCCH_Data[ch].Now_P + KALMAN->ADCCH_Data[ch].R);
+	 KALMAN->Kg = KALMAN->Now_P / (KALMAN->Now_P + KALMAN->R);
 	 //更新最优值方程：k时刻状态变量的最优值 = 状态变量的预测值 + 卡尔曼增益 * （测量值 - 状态变量的预测值）
-	 KALMAN->ADCCH_Data[ch].out = KALMAN->ADCCH_Data[ch].out + KALMAN->ADCCH_Data[ch].Kg * (input -KALMAN->ADCCH_Data[ch].out);//因为这一次的预测值就是上一次的输出值
+	 KALMAN->out = KALMAN->out + KALMAN->Kg * (input -KALMAN->out);//因为这一次的预测值就是上一次的输出值
 	 //更新协方差方程: 本次的系统协方差赋值给 kfp->LastP 为下一次运算准备。
-	 KALMAN->ADCCH_Data[ch].LastP = (1-KALMAN->ADCCH_Data[ch].Kg) * KALMAN->ADCCH_Data[ch].Now_P;
-	 return KALMAN->ADCCH_Data[ch].out;
+	 KALMAN->LastP = (1-KALMAN->Kg) * KALMAN->Now_P;
+	 return KALMAN->out;
 }
 
 uint16 Fourier_Once(ADCCH_enum ch,ADCRES_enum resolution)
 {
 		uint16 Data_Buff[ADC_Samp_SIZE]={0};
 		float Result_WithoutFilt;
-		uint32 Result_WithFilt;
+		uint16 Result_WithFilt;
 		//将2个周期的采样信号输出至Data_Buff
 		Fourier_DMAReadBuff(ch,resolution,Data_Buff);		
 		//计算基波幅值并卡尔曼滤波
-
+		
 		Result_WithoutFilt=(float)FFT(Data_Buff);
 		Result_WithoutFilt=Result_WithoutFilt<=0?0:Result_WithoutFilt;
 		
-		//Result_WithFilt = (uint32)kalmanFilter(&Fourier_Data,ch,Result_WithoutFilt);	
-		return Result_WithoutFilt;
+		Result_WithFilt = (uint16)kalmanFilter(&kalman_Data[ch],Result_WithoutFilt);	
+		return Result_WithFilt;
 }
