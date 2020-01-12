@@ -132,14 +132,14 @@ void Fourier_Init(DMACH_enum dmach,ADCCH_enum ch)
 
 /**
  *DMA参数重载（内部函数，无需调用）
+ *使用__STATIC_INLINE为了将这段函数内嵌到使用该函数的地方，这样可以减少函数调用的时间
  *@param DMACH_enum dmach 设置传输的DMA通道号,范围DMA_CH0~DMA_CH29
  *   		 void *SADDR 			DMA传输源地址
 				 void *DADDR			DMA传输目的地址
 				 uint16 count			传输次数
  *@return 无
- *@example Fourier_Init(DMA_CH0,ADC_CH6_B0);  设置B0口的基波幅值提取方式，数据传输用DMA_CH0通道
+ *@example Fourier_dma_reload(DMA_CH0, (void*)&ADC0->SEQ_GDAT[0],(void*)&Buff[0],20); 将ADC结果寄存器内的数据传输至Buff数组内，循环20次
 */
-//使用__STATIC_INLINE为了将这段函数内嵌到使用该函数的地方，这样可以减少函数调用的时间
 __STATIC_INLINE void Fourier_dma_reload(DMACH_enum dmach, void *SADDR, void *DADDR, uint16 count)//DMA参数重载  重新设置参数无需调用初始化
 {
     DMA0->COMMON[0].ENABLECLR = 1<<dmach;	//清除某个信道的DMA允许
@@ -166,6 +166,14 @@ __STATIC_INLINE void Fourier_dma_reload(DMACH_enum dmach, void *SADDR, void *DAD
 		}
 }
 
+/**
+ *ADC参数重载（内部函数，无需调用）
+ *使用__STATIC_INLINE为了将这段函数内嵌到使用该函数的地方，这样可以减少函数调用的时间
+ *@param ADCCH_enum ch 		设置AD转换端口
+ *   		 ADCRES_enum resolution 设置AD转换位数，范围6位，8位，10位，12位
+ *@return 无
+ *@example Fourier_adc_reload(ADC_CH6_B0,ADC_12BIT);设置B0口的AD转换参数，并设置为12位ADC
+*/
 __STATIC_INLINE void Fourier_adc_reload(ADCCH_enum ch,ADCRES_enum resolution)
 {
 	  ADC0->CTRL &= ~ADC_CTRL_RESOL_MASK;
@@ -183,6 +191,13 @@ __STATIC_INLINE void Fourier_adc_reload(ADCCH_enum ch,ADCRES_enum resolution)
 		ADC0->SEQ_CTRL[0] |= ADC_SEQ_CTRL_START_MASK; 	//开启ADC转换
 }
 
+/**
+ *中断控制（内部函数，无需调用）
+ *使用__STATIC_INLINE为了将这段函数内嵌到使用该函数的地方，这样可以减少函数调用的时间
+ *@param uint8 ONorOFF 	中断开关，1为开，0为关，控制DMA和ADC中断
+ *@return 无
+ *@example IRQ_Ctrl_ADC_DMA(1); 打开ADC和DMA中断
+*/
 __STATIC_INLINE void IRQ_Ctrl_ADC_DMA(uint8 ONorOFF)
 {
 		if(ONorOFF == 0)
@@ -199,7 +214,15 @@ __STATIC_INLINE void IRQ_Ctrl_ADC_DMA(uint8 ONorOFF)
 		}
 }
 
-uint8 START_FLAG=0;
+/**
+ *获取N此电压数据至指定数组内
+*@param ADCCH_enum ch 		设置AD转换端口	
+				ADCRES_enum resolution 设置AD转换位数，范围6位，8位，10位，12位
+				uint16 *Buff_Out  传入N个采样点电压数据数组的指针
+ *@return 无
+ *@example Fourier_DMAReadBuff(ADC_CH6_B0,ADC_12BIT,Data_Buff); 将B0口的N个采样点的12位电压数据传入Data_Buff数组内
+*/
+uint8 START_FLAG=0;		//开始转换标志
 void Fourier_DMAReadBuff(ADCCH_enum ch,ADCRES_enum resolution,uint16 *Buff_Out)
 {
 		static vuint32 Buff[ADC_Samp_SIZE+10];
@@ -213,9 +236,9 @@ void Fourier_DMAReadBuff(ADCCH_enum ch,ADCRES_enum resolution,uint16 *Buff_Out)
 		Fourier_adc_reload(ch,resolution);	//ADC参数重载
 		Fourier_dma_reload(Fourier_Data.DMA_CH[ch], (void*)&ADC0->SEQ_GDAT[0],(void*)&Buff[0],ADC_Samp_SIZE);//DMA参数重载
 	
-		IRQ_Ctrl_ADC_DMA(1);
-		while(START_FLAG){}
-		IRQ_Ctrl_ADC_DMA(0);
+		IRQ_Ctrl_ADC_DMA(1);	//打开中断
+		while(START_FLAG){}		//等待转换完成
+		IRQ_Ctrl_ADC_DMA(0);	//关闭中断
 		
 		uint8 Carry=(ADC_SEQ_GDAT_RESULT_SHIFT+(3-resolution)*2);
 		for(uint8 num=0;num<ADC_Samp_SIZE;num++)	//输出数据
@@ -226,8 +249,9 @@ void Fourier_DMAReadBuff(ADCCH_enum ch,ADCRES_enum resolution,uint16 *Buff_Out)
 		Fourier_Data.Busy_Flag = 0;	//清全局忙标志		
 }
 
-
-/********************************FFT功能实现及相关变量及初始化*****************************************/
+/* ------------------------------------------------------------------------------------------------------------------------
+   -- 以下基波幅值计算函数与芯片平台无关，可直接移植，只需将N个采样点的电压数据传入即可
+   -------------------------------------------------------------------------------------------------------------------------- */
 //cos_sin_search[n][0]=(2/采样点数n)*cos(2*Pi*信号频率f*n*采样周期T)
 //cos_sin_search[n][1]=(2/采样点数n)*sin(2*Pi*信号频率f*n*采样周期T)
 float cos_sin_search[11][2]=		//正余弦查表，采样点10个，原信号频率20khz
@@ -244,6 +268,16 @@ float cos_sin_search[11][2]=		//正余弦查表，采样点10个，原信号频率20khz
   {  0.1618, -0.1175},			//9
   {  0.2000,  0.0000}				//10
 };
+
+/**
+ *FFT基波幅值提取函数
+*@param uint16 *adc_data	传入保存了N个采样点的电压数据
+ *@return 基波幅值，如果传入的电压数据为6位的 ，返回基波幅值范围为0-31
+ *								 如果传入的电压数据为8位的 ，返回基波幅值范围为0-127
+ *								 如果传入的电压数据为10位的，返回基波幅值范围为0-512
+ *								 如果传入的电压数据为12位的，返回基波幅值范围为0-2048
+ *@example FFT(Data_Buff) 计算Data_Buff数组内的基波幅值
+*/
 double FFT(uint16 *adc_data)
 {
 	int16 An=0,Bn=0;
@@ -258,8 +292,8 @@ double FFT(uint16 *adc_data)
 
 /**
  *卡尔曼滤波器
- *@param KFP *kfp 卡尔曼结构体参数
- *   float input 需要滤波的参数的测量值（即传感器的采集值）
+ *@param struct kalman_Data_t* KALMAN 卡尔曼结构体参数
+ *   		 float input 需要滤波的参数的测量值（即传感器的采集值）
  *@return 滤波后的参数（最优值）
 */
 float kalmanFilter(struct kalman_Data_t* KALMAN,float input)
@@ -274,7 +308,13 @@ float kalmanFilter(struct kalman_Data_t* KALMAN,float input)
 	 KALMAN->LastP = (1-KALMAN->Kg) * KALMAN->Now_P;
 	 return KALMAN->out;
 }
-
+/**
+ *计算一个通道的一次基波幅值
+*@param ADCCH_enum ch 		设置AD转换端口	
+				ADCRES_enum resolution 设置AD转换位数，范围6位，8位，10位，12位
+ *@return 卡尔曼滤波以后的基波幅值
+ *@example FFT(Data_Buff) 计算Data_Buff数组内的基波幅值
+*/
 uint16 Fourier_Once(ADCCH_enum ch,ADCRES_enum resolution)
 {
 		uint16 Data_Buff[ADC_Samp_SIZE]={0};
@@ -284,9 +324,9 @@ uint16 Fourier_Once(ADCCH_enum ch,ADCRES_enum resolution)
 		Fourier_DMAReadBuff(ch,resolution,Data_Buff);		
 		//计算基波幅值并卡尔曼滤波
 		
-		Result_WithoutFilt=(float)FFT(Data_Buff);
-		Result_WithoutFilt=Result_WithoutFilt<=0?0:Result_WithoutFilt;
+		Result_WithoutFilt=(float)FFT(Data_Buff);		//提取基波幅值原始值
+		Result_WithoutFilt=Result_WithoutFilt<=0?0:Result_WithoutFilt;	//限幅
 		
-		Result_WithFilt = (uint16)kalmanFilter(&kalman_Data[ch],Result_WithoutFilt);	
+		Result_WithFilt = (uint16)kalmanFilter(&kalman_Data[ch],Result_WithoutFilt);			//卡尔曼滤波后返回基波幅值
 		return Result_WithFilt;
 }

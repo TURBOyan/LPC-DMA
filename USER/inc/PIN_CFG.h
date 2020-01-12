@@ -15,23 +15,23 @@
 #endif
 
 #ifdef new_PCB
-//	#define  OLED_SCL_PIN	B19			//新版
+//	#define  OLED_SCL_PIN	B19			//新版，吴科铮板
 //	#define  OLED_SDA_PIN	B21
 //	#define  OLED_RST_PIN	B1
 //	#define  OLED_DC_PIN	B2
 //	#define  OLED_CS_PIN	B9
 	
-	#define  OLED_SCL_PIN	B15			//新版
-	#define  OLED_SDA_PIN	A5
-	#define  OLED_RST_PIN	A19
-	#define  OLED_DC_PIN	A6
-	#define  OLED_CS_PIN	B9
-
-//	#define  OLED_SCL_PIN	B21			//新版
-//	#define  OLED_SDA_PIN	B22
-//	#define  OLED_RST_PIN	B13
-//	#define  OLED_DC_PIN	B27
+//	#define  OLED_SCL_PIN	B15			//新版，董少俊板
+//	#define  OLED_SDA_PIN	A5
+//	#define  OLED_RST_PIN	A19
+//	#define  OLED_DC_PIN	A6
 //	#define  OLED_CS_PIN	B9
+
+	#define  OLED_SCL_PIN	B21			//新版，步步为营板
+	#define  OLED_SDA_PIN	B22
+	#define  OLED_RST_PIN	B13
+	#define  OLED_DC_PIN	B27
+	#define  OLED_CS_PIN	B9
 #endif
 
 //----MPU6050模拟IIC引脚-----
